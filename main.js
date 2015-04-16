@@ -1,21 +1,23 @@
 function init()
 {
-    var scene = new THREE.Scene();//Create a new threeJS scene
+    //CREATE NEW THREE JS SCENE
+    var scene = new THREE.Scene();
     
+    //INIT AND SET UP RENDER
     var SCREEN_WIDTH = window.innerWidth, SCREEN_HEIGHT = window.innerHeight;
-    var renderer = new THREE.WebGLRenderer({antialias:true});//init the render which creates a new canvas element
+    var renderer = new THREE.WebGLRenderer({antialias:true});
         renderer.setClearColor(new THREE.Color('lightgrey'), 1)
-        renderer.setSize(SCREEN_WIDTH, SCREEN_HEIGHT);
-        document.body.appendChild( renderer.domElement );
-        renderer.domElement.id = "canvas_threeJS";//Add an id to the canvas for later access
+        renderer.setSize(SCREEN_WIDTH, SCREEN_HEIGHT); // SET RENDER SIZE
+        document.body.appendChild( renderer.domElement ); // APPEND RENDER CANVAS TO BODY
+        renderer.domElement.id = "canvas_threeJS"; // SET CANVAS ID
     
-    //Add a camera to the scene
+    //ADD CAMERA TO THE SCENE
     var VIEW_ANGLE = 45, ASPECT = SCREEN_WIDTH / SCREEN_HEIGHT, NEAR = 0.1, FAR =1000;
     var camera = new THREE.PerspectiveCamera( VIEW_ANGLE, ASPECT, NEAR, FAR);
         camera.position.set(-4,6,8);
         scene.add(camera);
     
-    // handle window resize
+    //HANDLE WINDOW RESIZE
 	window.addEventListener('resize', function(){
 		renderer.setSize( window.innerWidth, window.innerHeight )
 		camera.aspect	= window.innerWidth / window.innerHeight
@@ -23,11 +25,11 @@ function init()
 	}, false);
 
     
-    //Add the ambient light
+    //ADD AMBIENT LIGHT
     var ambientLight = new THREE.AmbientLight(0x404040);
         scene.add(ambientLight)
     
-    // CONTROLS
+    // 3d PAN AND ZOOM CONTROLS
     var controls = new THREE.OrbitControls(camera);
         controls.maxDistance = 14;
         controls.noPan = true;
@@ -48,57 +50,69 @@ function init()
     //ADD EVENT LISTENER FOR BUTTON
     document.getElementById("btn_add").onclick = addBox;
     
+    //ADD SKYBOX/BACKGROUND
     addBackground();
     
     //START RENDER
     update();
     
-    
+    //FUNCTION TO ADD SKYBOX/BACKGROUND
     function addBackground()
     {
+        //CREATE NEW TEXTURE FROM IMAGE
         var skyBoxTexture = new THREE.ImageUtils.loadTexture( 'assets/grid.png' );
             skyBoxTexture.wrapS = skyBoxTexture.wrapT = THREE.RepeatWrapping; 
             skyBoxTexture.repeat.set( 4, 4 );
 
+        //CREATE NEW MATERIAL WITH TEXTURE APPLIED
         var floorMat =  new THREE.MeshPhongMaterial( { map: skyBoxTexture, side: THREE.BackSide,shininess: 1} );
 
+        //CREATE NEW 3d BOX MESH WITH MATERIAL
         var skyBox = new THREE.Mesh(new THREE.BoxGeometry(20,20,20), floorMat);
             skyBox.position.y += 10;
             scene.add(skyBox);
         
+        //CREATE NEW P2 PHYSICS BODY -> 2d GROUNDPLANE
         var planeShape = new p2.Plane();
         var planeBody = new p2.Body({position:[0,0]});
-            planeBody.name = "ground";
-            planeBody.data = skyBox;
+            planeBody.name = "ground"; //ADD NAME TO 2d OBJECT
+            planeBody.data = skyBox; //ADD MESH OBJECT
             planeBody.addShape(planeShape);
             world.addBody(planeBody);
     }
     
+    //FUNCTION TO ADD NEW RANDOM BOX
     function addBox()
     {
+        //RANDOM WIDTH AND HEIGHT
         var w = 0.1+Math.random();
         var h = 0.1+Math.random();
         
+        //RANDOM X SPAWN POSITION
         var x = (Math.random()*10)-5;
         var y = 3;
         
+        //CREATE NEW MATERIAL WITH RANDOM COLOR
         var material = new THREE.MeshPhongMaterial( { color: getRandomColor() } );
         
+        //CREATE NEW 3d BOX MESH WITH MATERIAL
         var cube = new THREE.Mesh(new THREE.BoxGeometry(w, h, .5), material);
             cube.position.set(x,y,0)
             scene.add(cube);
         
+        //CREATE NEW P2 PHYSICS BODY -> 2d BOX
         var boxShape = new p2.Rectangle(w,h);
         var boxBody = new p2.Body({ mass:1, position:[x,y],angularVelocity:1 });
             boxBody.allowSleep = true;
-            boxBody.sleepSpeedLimit = 1; // Body will feel sleepy if speed<1 (speed is the norm of velocity)
-            boxBody.sleepTimeLimit =  1; // Body falls asleep after 1s of sleepiness
+            boxBody.sleepSpeedLimit = 1; 
+            boxBody.sleepTimeLimit =  1; 
             boxBody.data = cube;
             boxBody.name="box";
             boxBody.addShape(boxShape);
             world.addBody(boxBody);
     }
     
+    //FUNCTION TO CREATE RANDOM COLOR
     function getRandomColor() {
         var letters = '0123456789ABCDEF'.split('');
         var color = '#';
@@ -110,10 +124,8 @@ function init()
     
     function update()
     {
-        // keep rendering
+        //KEEP UPDATING
         requestAnimationFrame( update );
-    
-        
         
         //UPDATE PHYSICS
         world.step(1/60);
@@ -121,11 +133,13 @@ function init()
         //DRAW DEBUG
         physicsDebug.update()
         
-        //UPDATE 3D Objects
+        //FOR EACH 2d BODY IN THE WORLD
         for (var i = 0; i < world.bodies.length; i++) 
         { 
+            //IF 2d BODY HAS NAME BOX
             if(world.bodies[i].name == "box")
             {
+                //UPDATE 3d MESH BODY POSITION AND ROTATION ACCORDINGLY
                 world.bodies[i].data.position.set(world.bodies[i].position[0],world.bodies[i].position[1],0);
                 world.bodies[i].data.rotation.z = world.bodies[i].angle; 
             }
